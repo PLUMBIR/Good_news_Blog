@@ -1,0 +1,95 @@
+﻿@model NewsViewModel
+@inject SignInManager<IdentityUser> SignInManager
+@{
+    ViewData["Title"] = Model.News.Title;
+}
+
+<div class="card" style="margin: 15px;">
+    <img src="~/images/fon.jpg" class="card-img-top" height="500" alt="image">
+    <div class="card-body">
+        <div class="row">
+            <h3 class="card-title col-md-11">@Model.News.Title</h3>
+            <span class="fas fa-star" style="font-size:2em;"> @Model.News.IndexOfPositive</span>
+        </div>
+        <p class="card-text">@Model.News.Text</p>
+        <p class="card-text text-info">Источник: <a href="@Model.News.Source" target="_blank">нажмите чтобы перейти к источнику.</a></p>
+        <p class="card-text"><small class="text-muted">Последнее изменение @Model.News.DatePublication.ToLocalTime().ToLongDateString() @Model.News.DatePublication.ToLocalTime().ToShortTimeString()</small></p>
+    </div>
+</div>
+
+
+@*     Comments     *@
+<div id="commentContainer" class="container">
+    @await Html.PartialAsync("/Views/Comment/_GetComments.cshtml", @Model)
+</div>
+
+
+@*  Send comment  *@
+<div class="form-group" style="margin-top: 15px;">
+    <input type="hidden" id="newsId" name="id" value="@Model.News.Id" />
+    <textarea id="commentText" name="text" class="form-control" rows="6" style="resize: none" placeholder="Напишите свой комментарий..."></textarea>
+    @if (SignInManager.IsSignedIn(User))
+    {
+        <div class="container text-right">
+            @*<button type="submit" class="btn btn-primary col-md-2" style="margin-top: 10px; margin-bottom: 10px; font-size: 20px;">Отправить</button>*@
+            <button class="btn btn-primary btn-send-comment col-md-2" style="margin-top: 10px; margin-bottom: 10px; font-size: 20px;">Отправить</button>
+        </div>
+    }
+    else
+    {
+        <div class="container text-right">
+            @*<button type="submit" class="btn btn-primary col-md-2" disabled="disabled" style="margin-top: 10px; margin-bottom: 10px; font-size: 20px;">Отправить</button>*@
+            <button class="btn btn-primary btn-send-comment col-md-2" disabled="disabled" style="margin-top: 10px; margin-bottom: 10px; font-size: 20px;">Отправить</button>
+        </div>
+    }
+</div>
+
+<script src="https://ajax.aspnetcdn.com/ajax/jQuery/jquery-3.4.1.min.js"></script>
+
+<script>
+    $(document).ready(function () {
+        $('.btn-send-comment').click(
+            sendComment
+        )
+    });
+
+    function sendComment() {
+        var comment = {
+            Id: $('#newsId').val(),
+            Text: $('#commentText').val()
+        };
+
+        $.post({
+            url: "/comment/sendComment",
+            data: JSON.stringify(comment),
+            contentType: "application/json",
+            success: function (result) {
+                $('#commentText').val('');
+                reloadComments();
+            },
+            error: errorFunc
+        });
+    };
+
+
+    function errorFunc(errorData) {
+        alert('Ошибка' + errorData.responseText);
+    }
+
+    function reloadComments() {
+        $.ajax({
+            url: '/Comment/_GetComments/' + "?id=" + $('#newsId').val(),
+            type: "GET",
+            success: function (data) {
+                //$('#commentContainer').html(data);
+                $('#commentContainer').fadeOut(400,
+                    function() {
+                        $('#commentContainer').html(data);
+                        $(this).fadeIn(300);
+                    });
+            },
+            error: errorFunc
+        });
+    }
+    
+</script>
